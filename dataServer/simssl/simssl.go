@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/sha256"
-	"fmt"
 	"math/rand"
 	"strconv"
 	"time"
@@ -43,7 +42,7 @@ type SimSsl struct {
 	*/
 	Mode uint8 //required
 	/*
-		Checksum
+		Checksum ToDo
 	*/
 	CheckSum uint16 //required
 	/*
@@ -79,7 +78,7 @@ func GenerateClientHello(cid []byte) (SimSsl, error) {
 	clientHello := SimSsl{
 		ContentType:    0x01,
 		Version:        0x01,
-		Length:         128, //字节
+		Length:         128, //bytes
 		Method:         0x01,
 		Mode:           0x02,
 		CheckSum:       0x00,
@@ -93,12 +92,57 @@ func GenerateClientHello(cid []byte) (SimSsl, error) {
 	if err != nil {
 		return SimSsl{}, err
 	}
-	clientHello.RandomInit = encryptMessage
-	//	fmt.Println(unsafe.Sizeof(clientHello.Mode))
-	//	fmt.Println(unsafe.Sizeof(clientHello))
-	fmt.Printf("%x\n", clientHello.RandomInit)
-
+	//encrypt the initial message
+	copy(clientHello.RandomInit[:], encryptMessage[:32])
 	return clientHello, nil
+}
+
+/*
+GenerateServerHello Generate a server Hello Packet
+*/
+func GenerateServerHello(cid [32]byte, sid []byte, randomInit [32]byte, timestamp int64) (SimSsl, error) {
+	rand.Seed(time.Now().Unix())
+	serverHello := SimSsl{
+		ContentType:    0x02,
+		Version:        0x01,
+		Length:         112, //bytes
+		Method:         0x01,
+		Mode:           0x02,
+		CheckSum:       0x00,
+		ClientID:       cid,
+		ServerID:       sha256.Sum256([]byte(sid)),
+		ExpirationTime: timestamp,
+		RandomInit:     randomInit,
+	}
+	return serverHello, nil
+}
+
+/*
+CheckSum calculate the checksum of the whole packets, the checksum is originall 0.
+*/
+func CheckSum(packetData []uint8, length uint16) uint16 {
+	var acc uint32
+	var src uint16
+	acc = 0
+	counter := 0
+	for length > 1 {
+		src = uint16(packetData[counter]) << 8
+		counter++
+		src |= uint16(packetData[counter])
+		counter++
+		acc += uint32(src)
+		length -= 2
+	}
+	if length > 0 { //奇数
+		src = (uint16)(packetData[counter]) << 8
+		acc += uint32(src)
+	}
+	acc = (acc >> 16) + (acc & 0x0000ffff)
+	if acc&0xffff0000 != 0 {
+		acc = (acc >> 16) + (acc & 0x0000ffff)
+	}
+	src = uint16(acc)
+	return ^src
 }
 
 /*

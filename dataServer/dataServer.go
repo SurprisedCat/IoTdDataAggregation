@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"time"
-	"unsafe"
 
 	"./simssl"
 )
@@ -54,15 +56,30 @@ func svrConnHandler(conn net.Conn) {
 	}
 }
 
-type test struct {
-	test1 byte
-	test2 uint64
+type Test struct {
+	Test1 int16
+	Test2 int16
 }
 
 func main() {
 	simssl.GenerateClientHello([]byte("TEST"))
-	test0 := test{12, 12312}
-	fmt.Println(unsafe.Sizeof(test0))
+	// chksum := simssl.CheckSum([]byte{0x45, 0x00, 0x00, 0x3c, 0x00, 0x00, 0x00, 0x00, 0x40, 0x11, 0x00, 0x00, 0xc0, 0xa8, 0x2b, 0xc3, 0x08, 0x08, 0x08, 0x08, 0x11}, 21)
+	// fmt.Printf("%x\n", chksum)
+
+	test0 := Test{12, 12}
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	err := enc.Encode(test0)
+	if err != nil {
+		log.Fatal("encode error:", err)
+	}
+	fmt.Printf("%d\n", buf)
+	dec := gob.NewDecoder(&buf)
+	var m2 Test
+	if err := dec.Decode(&m2); err != nil {
+		log.Fatal("decode error:", err)
+	}
+	fmt.Printf("%v\n", m2)
 	/*
 		//解析地址
 		tcpAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:6666")
