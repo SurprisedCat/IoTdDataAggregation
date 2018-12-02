@@ -5,6 +5,9 @@ import (
 	"net"
 	"os"
 	"time"
+	"unsafe"
+
+	"./simssl"
 )
 
 //错误处理函数
@@ -51,28 +54,38 @@ func svrConnHandler(conn net.Conn) {
 	}
 }
 
+type test struct {
+	test1 byte
+	test2 uint64
+}
+
 func main() {
-	//解析地址
-	tcpAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:6666")
-	if checkErr(err, "ResolveTCPAddr") {
-		return
-	}
-
-	//设置监听地址
-	listener, err := net.ListenTCP("tcp", tcpAddr)
-	if checkErr(err, "ListenTCP") {
-		return
-	}
-
-	for {
-		//监听
-		fmt.Println("Start wait for client.")
-		conn, err := listener.Accept()
-		if checkErr(err, "Accept") {
-			continue
+	simssl.GenerateClientHello([]byte("TEST"))
+	test0 := test{12, 12312}
+	fmt.Println(unsafe.Sizeof(test0))
+	/*
+		//解析地址
+		tcpAddr, err := net.ResolveTCPAddr("tcp", "127.0.0.1:6666")
+		if checkErr(err, "ResolveTCPAddr") {
+			return
 		}
 
-		//消息处理函数
-		go svrConnHandler(conn)
-	}
+		//设置监听地址
+		listener, err := net.ListenTCP("tcp", tcpAddr)
+		if checkErr(err, "ListenTCP") {
+			return
+		}
+
+		for {
+			//监听
+			fmt.Println("Start wait for client.")
+			conn, err := listener.Accept()
+			if checkErr(err, "Accept") {
+				continue
+			}
+
+			//消息处理函数
+			go svrConnHandler(conn)
+		}
+	*/
 }
