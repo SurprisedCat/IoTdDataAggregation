@@ -3,16 +3,20 @@ package main
 import (
 	"encoding/gob"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
 	"os"
 	"strconv"
 
 	"../common"
+	"../database"
 	"../simssl"
 )
 
 func main() {
+
+	database.ConnTest()
 
 	//Get the hostname of the machine
 	hostname, err := os.Hostname()
@@ -54,7 +58,7 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 	/*******************接收0x02***********************/
 	recPacket := &simssl.SimSsl{}
 	dec.Decode(recPacket)
-	fmt.Printf("Received 1: %+v\n", recPacket)
+	//fmt.Printf("Received 1: %+v\n", recPacket)
 
 	if recPacket.ContentType == 0x02 {
 		//return false means something is wrong
@@ -83,9 +87,24 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 			if recPacket.ContentType == 0x04 {
 				fmt.Printf("Received 2:%+v\n", recPacket)
 				//在文件中中清除秘钥
+				if ioutil.WriteFile("key.txt", nil, 0644) != nil {
+					panic("Key cannot be erased from files")
+				}
+
 			}
 		} else {
-			fmt.Println("sd") //在文件中写入client和秘钥
+			//秘钥写入文件
+			if ioutil.WriteFile("key.txt", message.EncryptKey[:], 0644) != nil {
+				panic("Key cannot be written into files")
+			}
+			/* 从文件中读取测试
+			contents, err := ioutil.ReadFile("key.txt")
+			if err != nil {
+				panic("Key Read failed")
+			}
+			fmt.Printf("%d", contents)
+			*/
+
 		}
 	} else {
 		panic("Unexpected packet type")

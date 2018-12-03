@@ -206,7 +206,7 @@ func CheckKey(A, B *SimSsl) bool {
 	if originInital != B.RandomInit {
 		return false
 	}
-	return false
+	return true
 }
 
 /*
