@@ -58,7 +58,7 @@ type SimSsl struct {
 		Timestamp + (60*60*24)
 		add one day when key exchange
 	*/
-	ExpirationTime int64 //required
+	ExpirationTime int64 //optional
 
 	/*
 		The initial string for check the validation of EncrptKey
@@ -100,7 +100,7 @@ func GenerateClientHello(cid []byte) (SimSsl, error) {
 /*
 GenerateServerHello Generate a server Hello Packet
 */
-func GenerateServerHello(cid [32]byte, sid []byte, randomInit [32]byte, timestamp int64) (SimSsl, error) {
+func GenerateServerHello(cid [32]byte, sid []byte, randomInit [32]byte, encryptKey [16]byte, timestamp int64) (SimSsl, error) {
 	rand.Seed(time.Now().Unix())
 	serverHello := SimSsl{
 		ContentType:    0x02,
@@ -110,11 +110,53 @@ func GenerateServerHello(cid [32]byte, sid []byte, randomInit [32]byte, timestam
 		Mode:           0x02,
 		CheckSum:       0x00,
 		ClientID:       cid,
-		ServerID:       sha256.Sum256([]byte(sid)),
+		ServerID:       sha256.Sum256(sid),
 		ExpirationTime: timestamp,
 		RandomInit:     randomInit,
 	}
+	decryptMessage, err := AesDecrypt(serverHello.RandomInit[:], encryptKey[:])
+	if err != nil {
+		return SimSsl{}, err
+	}
+	//encrypt the initial message
+	copy(serverHello.RandomInit[:], decryptMessage[:32])
 	return serverHello, nil
+}
+
+/*
+GenerateClientFailed Generate a client failed Packet. The client finds the hello message is wrong
+*/
+func GenerateClientFailed(cid []byte, sid []byte) (SimSsl, error) {
+	rand.Seed(time.Now().Unix())
+	clientFailed := SimSsl{
+		ContentType: 0x03,
+		Version:     0x01,
+		Length:      72, //bytes
+		Method:      0x01,
+		Mode:        0x02,
+		CheckSum:    0x00,
+		ClientID:    sha256.Sum256(cid),
+		ServerID:    sha256.Sum256(sid),
+	}
+	return clientFailed, nil
+}
+
+/*
+GenerateServerErase Generate a ServerErase Packet. The server replies the client.
+*/
+func GenerateServerErase(cid [32]byte, sid []byte) (SimSsl, error) {
+	rand.Seed(time.Now().Unix())
+	serverErase := SimSsl{
+		ContentType: 0x04,
+		Version:     0x01,
+		Length:      72, //bytes
+		Method:      0x01,
+		Mode:        0x02,
+		CheckSum:    0x00,
+		ClientID:    cid,
+		ServerID:    sha256.Sum256([]byte(sid)),
+	}
+	return serverErase, nil
 }
 
 /*
@@ -143,6 +185,28 @@ func CheckSum(packetData []uint8, length uint16) uint16 {
 	}
 	src = uint16(acc)
 	return ^src
+}
+
+/*
+CheckKey check the key and expiration time id
+*/
+func CheckKey(A, B *SimSsl) bool {
+	if A.ClientID != B.ClientID {
+		return false
+	}
+	if A.ExpirationTime != B.ExpirationTime {
+		return false
+	}
+	temp, err := AesDecrypt(A.RandomInit[:], A.EncryptKey[:])
+	if err != nil {
+		return false
+	}
+	var originInital [32]byte
+	copy(originInital[:], temp[:32])
+	if originInital != B.RandomInit {
+		return false
+	}
+	return false
 }
 
 /*
