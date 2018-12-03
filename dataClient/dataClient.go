@@ -51,10 +51,10 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 	}
 	/*****************发送*********************/
 
-	/*******************接受***********************/
+	/*******************接收0x02***********************/
 	recPacket := &simssl.SimSsl{}
 	dec.Decode(recPacket)
-	fmt.Printf("Received : %+v", recPacket)
+	fmt.Printf("Received 1: %+v\n", recPacket)
 
 	if recPacket.ContentType == 0x02 {
 		//return false means something is wrong
@@ -70,21 +70,22 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 			if common.CheckErr(err, "simssl.GenerateClientFailed") {
 				return
 			}
-			/*发送失败包*/
+			/*发送失败包 0x03*/
 			err = enc.Encode(clientFailed)
 			if err != nil {
 				log.Fatal("encode error:", err)
 			}
-			fmt.Printf("Received : %+v", clientFailed)
+			fmt.Printf("Send 2: %+v\n", clientFailed)
+
+			/*******************接收0x04***********************/
 			recPacket = &simssl.SimSsl{}
 			dec.Decode(recPacket)
-
 			if recPacket.ContentType == 0x04 {
-				fmt.Printf("%+v", recPacket)
-				//在redis中清除秘钥
+				fmt.Printf("Received 2:%+v\n", recPacket)
+				//在文件中中清除秘钥
 			}
 		} else {
-			fmt.Println("sd") //在redis中写入client和秘钥
+			fmt.Println("sd") //在文件中写入client和秘钥
 		}
 	} else {
 		panic("Unexpected packet type")

@@ -57,41 +57,58 @@ func svrConnHandler(conn net.Conn) {
 	recPacket := &simssl.SimSsl{}
 	dec.Decode(recPacket)
 
-	/****************发送 serverReply****************/
 	//get serverID=hostname+uid
 	hostname, err := os.Hostname()
 	if common.CheckErr(err, "cannot get Hostname ") {
 		return
 	}
 	serverID := []byte(hostname + strconv.FormatInt(int64(os.Getuid()), 10))
+	//get serverID=hostname+uid
 
+	/****************发送 serverReply 0x02****************/
 	var serverReply simssl.SimSsl
-	switch recPacket.ContentType {
-	case 0x01:
+	if recPacket.ContentType == 0x01 {
 		//generate the server hello packet
 		serverReply, err = simssl.GenerateServerHello(recPacket.ClientID, serverID, recPacket.RandomInit, recPacket.EncryptKey, recPacket.ExpirationTime)
 		if common.CheckErr(err, "simssl.GenerateServerHello") {
 			return
 		}
-		fmt.Printf("Received : %+v", recPacket)
-
-	case 0x03:
-		//generate the server erase packet
-		serverReply, err = simssl.GenerateServerErase(recPacket.ClientID, serverID)
-		if common.CheckErr(err, "simssl.GenerateServerErase") {
-			return
-		}
-		fmt.Printf("Received : %+v", recPacket)
-
-	default:
+		fmt.Printf("Received 1: %+v", recPacket)
+	} else {
 		serverReply = simssl.SimSsl{}
 	}
-	//发送
+	//发送0x02
 	enc := gob.NewEncoder(conn)
 	err = enc.Encode(&serverReply)
 	if err != nil {
 		log.Fatal("encode error:", err)
 	}
-	/****************发送 serverReply****************/
+	//	Write the client info into redis
+
+	/****************发送 serverReply 0x02****************/
+
+	/*错误处理 0x03*/
+	recPacket = &simssl.SimSsl{}
+	dec.Decode(recPacket)
+	fmt.Printf("Received 2: %+v", recPacket)
+
+	/****************发送 serverReply 0x04****************/
+	if recPacket.ContentType == 0x03 {
+
+		//Erase the client info from redis
+
+		//generate the server erase packet
+		serverReply, err = simssl.GenerateServerErase(recPacket.ClientID, serverID)
+		if common.CheckErr(err, "simssl.GenerateServerErase") {
+			return
+		}
+		//send 0x04
+		err = enc.Encode(&serverReply)
+		if err != nil {
+			log.Fatal("encode error:", err)
+		}
+	}
+	/****************发送 serverReply 0x04****************/
+
 	return
 }
