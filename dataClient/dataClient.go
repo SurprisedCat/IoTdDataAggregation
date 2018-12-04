@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"encoding/gob"
 	"fmt"
 	"io/ioutil"
@@ -17,7 +18,10 @@ import (
 func main() {
 
 	database.ConnTest()
+	clientAuth()
+}
 
+func clientAuth() {
 	//Get the hostname of the machine
 	hostname, err := os.Hostname()
 	if err != nil {
@@ -94,17 +98,21 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 			}
 		} else {
 			//秘钥写入文件
-			if ioutil.WriteFile("key.txt", message.EncryptKey[:], 0644) != nil {
+			buf := make([]byte, 8, 24)
+			binary.PutVarint(buf, recPacket.ExpirationTime)
+			//concat the encrypt key and ExpirationTime
+			buf = append(message.EncryptKey[:], buf...)
+			if ioutil.WriteFile("key.txt", buf, 0644) != nil {
 				panic("Key cannot be written into files")
 			}
-			/* 从文件中读取测试
+			/* 从文件中读取测试*/
 			contents, err := ioutil.ReadFile("key.txt")
 			if err != nil {
 				panic("Key Read failed")
 			}
-			fmt.Printf("%d", contents)
-			*/
-
+			fmt.Printf("%d\n", contents[:15])
+			timeEx, _ := binary.Varint(contents[16:23])
+			fmt.Printf("%d，%d\n", timeEx, recPacket.ExpirationTime)
 		}
 	} else {
 		panic("Unexpected packet type")
