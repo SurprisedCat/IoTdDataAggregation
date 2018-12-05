@@ -1,10 +1,47 @@
 package database
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	"github.com/gomodule/redigo/redis"
 )
+
+/*
+DataServerWriteAuth write the key into redis and set the expiration time
+*/
+func DataServerWriteAuth(key, value []byte, expireTime int64) bool {
+	c, err := redis.Dial("tcp", "localhost:6379")
+	if err != nil {
+		fmt.Println("conn redis failed,", err)
+		return false
+	}
+	defer c.Close()
+	_, err = c.Do("SET", key, value, "EX", expireTime)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	return true
+}
+
+/*
+DataServerEraseAuth write the key into redis and set the expiration time
+*/
+func DataServerEraseAuth(key []byte) bool {
+	c, err := redis.Dial("tcp", "localhost:6379")
+	if err != nil {
+		fmt.Println("conn redis failed,", err)
+		return false
+	}
+	defer c.Close()
+	_, err = c.Do("DEL", key)
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	return true
+}
 
 /*
 ConnTest Redis connecte test
@@ -22,8 +59,12 @@ func ConnTest() {
 		fmt.Println(err)
 		return
 	}
-
-	r, err := redis.Ints(c.Do("MGet", "abc", "efg"))
+	_, err = c.Do("DEL", "efg")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	r, err := redis.Ints(c.Do("MGet", "abc", "efg", "hdf"))
 	if err != nil {
 		fmt.Println("get abc failed,", err)
 		return
@@ -36,5 +77,22 @@ func ConnTest() {
 	if err != nil {
 		fmt.Println(err)
 		return
+	}
+	key := sha256.Sum256([]byte("OAI1001"))
+	r2, err := c.Do("GET", key[:])
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(r2)
+	r3, err := c.Do("GET", "edss")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	if r3 == nil {
+		fmt.Println(r3)
+	} else {
+		fmt.Println("nil is not nil")
 	}
 }
