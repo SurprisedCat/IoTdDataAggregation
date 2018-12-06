@@ -26,9 +26,13 @@ func ClientSend(serverAddr, httpPort, dataJSON []byte, httpwg *sync.WaitGroup) {
 		utils.CheckErr(err, "HTTP POST error")
 	}
 	resp.Body.Close()
-	httpRespTest := map[string][]byte{}
-	json.Unmarshal(body, &httpRespTest)
-	fmt.Printf("http response : %s\n", httpRespTest)
+	httpResp := map[string][]byte{}
+	json.Unmarshal(body, &httpResp)
+	if bytes.Compare(httpResp["status"], []byte("OK")) == 0 {
+		fmt.Printf("http response : %s\n", httpResp)
+	} else {
+		fmt.Printf("http response : %s\n", httpResp)
+	}
 	httpwg.Done()
 
 }
