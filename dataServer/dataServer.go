@@ -1,10 +1,10 @@
 package main
 
 import (
-	"linuxdashboard"
 	"sync"
 
 	"../auth"
+	"../iothttp"
 )
 
 var wgAuth sync.WaitGroup
@@ -12,13 +12,14 @@ var wgAuth sync.WaitGroup
 func main() {
 	wgAuth.Add(1)
 	go auth.SvrListen(&wgAuth)
-	wgAuth.Wait()
 
 	//路由部分
-	router := linuxdashboard.RouterRegister()
+	router := iothttp.RouterRegister()
 	//静态资源
-	router.Static("/static", "./linuxdashboard/godashboard")
+	//router.Static("/static", "./linuxdashboard/godashboard")
 	//运行的端口
-	router.Run(":8080")
+	go router.Run(":8080")
+
+	wgAuth.Wait()
 
 }

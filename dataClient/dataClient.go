@@ -3,22 +3,29 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
+	"sync"
 	"time"
 
 	"../auth"
+	"../iothttp"
 	"../simssl"
 	"../utils"
 )
 
 func main() {
+	//common parameters
+	serverAddr := []byte("127.0.0.1")
+	origData := []byte("DATA")
+	protocolType := "http"
+	httpPort := []byte("8080")
+
 	/**********************Authentication****************/
 	contents, err := ioutil.ReadFile("key.txt") //read the key.txt
 	authTime := 0
 	for err != nil || len(contents) == 0 {
-		if !auth.ClientAuth([]byte("127.0.0.1")) { //connect server for autentication
+		if !auth.ClientAuth(serverAddr) { //connect server for autentication
 			authTime++
 			log.Printf("Authentication fails for %d", authTime)
 			time.Sleep(time.Duration(3*authTime) * time.Second)
@@ -34,13 +41,13 @@ func main() {
 	encryptKey := contents[:16]
 	expirationTime, numbers := binary.Varint(contents[16:24])
 	if expirationTime < time.Now().Unix() || numbers <= 0 {
-		auth.ClientAuth([]byte("127.0.0.1"))
+		auth.ClientAuth(serverAddr)
 	}
 	/*********************Check Expiration************/
 
 	/*********************data generation************/
 	clientID := utils.GetClientID()
-	origData := append([]byte("I am "), clientID...)
+	origData = append([]byte("I am "), clientID...)
 	encryptedData, err := simssl.AesEncrypt(origData, encryptKey)
 	if err != nil {
 		log.Fatal("simssl.AesEncrypt:", err)
@@ -50,6 +57,14 @@ func main() {
 	/*********************data generation************/
 
 	/********************send with http*************/
+	if protocolType == "http" {
+		var httpwg sync.WaitGroup
+		for i := 0; i < 100; i++ {
+			httpwg.Add(1)
+			go iothttp.ClientSend(serverAddr, httpPort, dataJSON, &httpwg)
+		}
+		httpwg.Wait()
+	}
 
 	/********************send with http*************/
 
@@ -66,16 +81,16 @@ func main() {
 	/********************send with socketraw*************/
 
 	/*****************data decoding****************/
-	fmt.Println(string(dataJSON))
-	dec := map[string][]byte{}                   //data is in the form of map[string][]byte
-	err = json.Unmarshal([]byte(dataJSON), &dec) //json decode
-	if err != nil {
-		log.Fatal("JSON error:", err)
-	}
-	auth.GetKeyClient()
-	decrypted, _ := simssl.AesDecrypt(dec["data"], encryptKey) //aes decoding
-	fmt.Println(string(dec["ID"]))
-	fmt.Println(string(decrypted))
+	// fmt.Println(string(dataJSON))
+	// dec := map[string][]byte{}                   //data is in the form of map[string][]byte
+	// err = json.Unmarshal([]byte(dataJSON), &dec) //json decode
+	// if err != nil {
+	// 	log.Fatal("JSON error:", err)
+	// }
+	// auth.GetKeyClient()
+	// decrypted, _ := simssl.AesDecrypt(dec["data"], encryptKey) //aes decoding
+	// fmt.Println(string(dec["ID"]))
+	// fmt.Println(string(decrypted))
 
 }
 
