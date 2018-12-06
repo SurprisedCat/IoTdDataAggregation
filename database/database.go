@@ -44,6 +44,25 @@ func DataServerEraseAuth(key []byte) bool {
 }
 
 /*
+DataServerGetKey server gets encrypted key from rediss
+*/
+func DataServerGetKey(cid []byte) ([]byte, bool) {
+	c, err := redis.Dial("tcp", "localhost:6379")
+	if err != nil {
+		fmt.Println("conn redis failed,", err)
+		return nil, false
+	}
+	defer c.Close()
+	key := sha256.Sum256(cid)
+	encryptedKey, err := redis.String(c.Do("GET", key[:]))
+	if err != nil {
+		fmt.Println(err)
+		return nil, false
+	}
+	return []byte(encryptedKey), true
+}
+
+/*
 ConnTest Redis connecte test
 */
 func ConnTest() {

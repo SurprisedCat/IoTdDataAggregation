@@ -233,6 +233,7 @@ func AesEncrypt(origData, key []byte) ([]byte, error) {
 AesDecrypt AES decrypt with crypted message and key
 */
 func AesDecrypt(crypted, key []byte) ([]byte, error) {
+
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return nil, err
@@ -240,10 +241,19 @@ func AesDecrypt(crypted, key []byte) ([]byte, error) {
 	blockSize := block.BlockSize()
 	blockMode := cipher.NewCBCDecrypter(block, key[:blockSize])
 	origData := make([]byte, len(crypted))
-	// origData := crypted
 	blockMode.CryptBlocks(origData, crypted)
+
+	paddingNum := int(origData[len(origData)-1])
+	// no padding
+	if int(origData[len(origData)-1]) > block.BlockSize() {
+		return origData, nil
+	}
+	for i := len(origData) - paddingNum; i < paddingNum; i++ {
+		if int(origData[i]) != paddingNum {
+			return origData, nil
+		}
+	}
 	origData = PKCS5UnPadding(origData)
-	// origData = ZeroUnPadding(origData)
 	return origData, nil
 }
 

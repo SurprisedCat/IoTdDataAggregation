@@ -20,21 +20,23 @@ import (
 /*
 ClientAuth client authenticates the key and expiration time
 */
-func ClientAuth(serveraddr []byte) {
+func ClientAuth(serveraddr []byte) bool {
 	clientID := utils.GetClientID()
 	/*send client hello*/
-	clientHello, err := simssl.GenerateClientHello([]byte(clientID))
+	clientHello, err := simssl.GenerateClientHello(clientID)
 	if utils.CheckErr(err, "simssl.GenerateClientHello") {
-		return
+		return false
 	}
 
 	//Open a socket for transmission
 	conn, err := net.Dial("tcp", string(append(serveraddr, []byte(":7676")...)))
 	if err != nil {
-		log.Fatal("Connection error", err)
+		log.Printf("Connection error: %v", err)
+		return false
 	}
 	clientConnHandler(conn, &clientHello)
 	fmt.Println("dataClient is authenticated")
+	return true
 }
 
 func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
@@ -55,14 +57,14 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 	/*******************接收0x02***********************/
 	recPacket := &simssl.SimSsl{}
 	dec.Decode(recPacket)
-	//fmt.Printf("Received 1: %+v\n", recPacket)
+	fmt.Printf("Received 1: %+v\n", recPacket)
 
 	if recPacket.ContentType == 0x02 {
 		//return false means something is wrong
 		if !simssl.CheckKey(message, recPacket) {
 
 			clientID := utils.GetClientID()
-			clientFailed, err := simssl.GenerateClientFailed([]byte(clientID), []byte("Known"))
+			clientFailed, err := simssl.GenerateClientFailed(clientID, []byte("Known"))
 			if utils.CheckErr(err, "simssl.GenerateClientFailed") {
 				return
 			}
@@ -71,13 +73,13 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 			if err != nil {
 				log.Fatal("encode error:", err)
 			}
-			fmt.Printf("Send 2: %+v\n", clientFailed)
+			//fmt.Printf("Send 2: %+v\n", clientFailed)
 
 			/*******************接收0x04***********************/
 			recPacket = &simssl.SimSsl{}
 			dec.Decode(recPacket)
 			if recPacket.ContentType == 0x04 {
-				fmt.Printf("Received 2:%+v\n", recPacket)
+				//fmt.Printf("Received 2:%+v\n", recPacket)
 				//在文件中中清除秘钥
 				if ioutil.WriteFile("key.txt", nil, 0644) != nil {
 					panic("Key cannot be erased from files")
@@ -101,9 +103,9 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 }
 
 /*
-GetKey get the encrypt key
+GetKeyClient get the encrypt key
 */
-func GetKey() ([]byte, int64) {
+func GetKeyClient() ([]byte, int64) {
 	/* 从文件中读取测试*/
 	contents, err := ioutil.ReadFile("key.txt")
 	if err != nil {
@@ -160,8 +162,15 @@ func svrConnHandler(conn net.Conn, wg *sync.WaitGroup) {
 	fmt.Println("Client connect success :", conn.RemoteAddr().String())
 	conn.SetReadDeadline(time.Now().Add(2 * time.Minute))
 	//buf := make([]byte, 2048)
-	defer conn.Close()
+
+	//加了这个函数防止意外退出服务
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Runtime error caught :", r)
+		}
+	}()
 	defer wg.Done()
+	defer conn.Close()
 
 	//输出接收到的信息
 
@@ -235,4 +244,15 @@ func svrConnHandler(conn net.Conn, wg *sync.WaitGroup) {
 	/****************发送 serverReply 0x04****************/
 
 	return
+}
+
+/*
+GetValidationKeyServer the check the existation and expiration of encryption key
+*/
+func GetValidationKeyServer(clientID []byte) ([]byte, bool) {
+	encryptedKey, vali := database.DataServerGetKey(clientID)
+	if vali == false || encryptedKey == nil {
+		return nil, false
+	}
+	return encryptedKey, true
 }
