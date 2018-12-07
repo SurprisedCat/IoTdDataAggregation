@@ -15,6 +15,8 @@ import (
 ClientSend send a specific packet to ip:port
 */
 func ClientSend(serverAddr, httpPort, dataJSON []byte, httpwg *sync.WaitGroup) {
+	defer httpwg.Done()
+
 	req := bytes.NewBuffer(dataJSON)
 	resp, err := http.Post("http://"+string(serverAddr)+":"+string(httpPort)+"/v1/upload/single", "application/json;charset=utf-8", req)
 	if err != nil {
@@ -33,6 +35,5 @@ func ClientSend(serverAddr, httpPort, dataJSON []byte, httpwg *sync.WaitGroup) {
 	} else {
 		fmt.Printf("http response : %s\n", httpResp)
 	}
-	httpwg.Done()
 
 }

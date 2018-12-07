@@ -3,13 +3,18 @@ package main
 import (
 	"encoding/binary"
 	"encoding/json"
+	"flag"
 	"io/ioutil"
 	"log"
 	"sync"
 	"time"
 
+	proto "github.com/huin/mqtt"
+
 	"../auth"
+	"../iotcoap"
 	"../iothttp"
+	"../iotmqtt"
 	"../simssl"
 	"../utils"
 )
@@ -18,8 +23,9 @@ func main() {
 	//common parameters
 	serverAddr := []byte("127.0.0.1")
 	origData := []byte("DATA")
-	protocolType := "http"
+	protocolType := "coap"
 	httpPort := []byte("8080")
+	coapPort := []byte("5683")
 
 	/**********************Authentication****************/
 	contents, err := ioutil.ReadFile("key.txt") //read the key.txt
@@ -59,22 +65,68 @@ func main() {
 	/********************send with http*************/
 	if protocolType == "http" {
 		var httpwg sync.WaitGroup
-		for i := 0; i < 100; i++ {
+		for i := 0; i < 10; i++ {
 			httpwg.Add(1)
 			go iothttp.ClientSend(serverAddr, httpPort, dataJSON, &httpwg)
 		}
 		httpwg.Wait()
 	}
-
 	/********************send with http*************/
 
-	/********************send with mqtt*************/
-
-	/********************send with mqtt*************/
-
+	/********************send with coap*************/
+	if protocolType == "coap" {
+		var coapwg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			coapwg.Add(1)
+			time.Sleep(time.Duration(100) * time.Microsecond)
+			go iotcoap.ClientSend(serverAddr, coapPort, dataJSON, &coapwg)
+		}
+		coapwg.Wait()
+	}
 	/********************send with coap*************/
 
-	/********************send with coap*************/
+	/********************send with mqtt*************/
+	var conns = flag.Int("conns", 10, "how many conns (0 means infinite)")
+	var host = flag.String("host", string(serverAddr)+":1883", "hostname of broker")
+	var user = flag.String("user", "", "username")
+	var pass = flag.String("pass", "", "password")
+	var dump = flag.Bool("dump", false, "dump messages?")
+	var wait = flag.Int("wait", 10, "ms to wait between client connects")
+	var pace = flag.Int("pace", 60, "send a message on average once every pace seconds")
+
+	var payload proto.Payload
+	var topic string
+
+	flag.Parse()
+
+	if flag.NArg() != 2 {
+		topic = "many"
+		payload = proto.BytesPayload([]byte("hello"))
+	} else {
+		topic = flag.Arg(0)
+		payload = proto.BytesPayload([]byte(flag.Arg(1)))
+	}
+
+	if *conns == 0 {
+		*conns = -1
+	}
+
+	i := 0
+	for {
+		go iotmqtt.Client(i)
+		i++
+
+		*conns--
+		if *conns == 0 {
+			break
+		}
+		time.Sleep(time.Duration(*wait) * time.Millisecond)
+	}
+
+	// sleep forever
+	//<-make(chan struct{})
+
+	/********************send with mqtt*************/
 
 	/********************send with socketraw*************/
 
