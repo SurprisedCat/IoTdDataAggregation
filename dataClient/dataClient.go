@@ -23,9 +23,10 @@ func main() {
 	//common parameters
 	serverAddr := []byte("127.0.0.1")
 	origData := []byte("DATA")
-	protocolType := "coap"
+	protocolType := "mqtt"
 	httpPort := []byte("8080")
 	coapPort := []byte("5683")
+	mqttPort := []byte("1883")
 
 	/**********************Authentication****************/
 	contents, err := ioutil.ReadFile("key.txt") //read the key.txt
@@ -86,46 +87,42 @@ func main() {
 	/********************send with coap*************/
 
 	/********************send with mqtt*************/
-	var conns = flag.Int("conns", 10, "how many conns (0 means infinite)")
-	var host = flag.String("host", string(serverAddr)+":1883", "hostname of broker")
-	var user = flag.String("user", "", "username")
-	var pass = flag.String("pass", "", "password")
-	var dump = flag.Bool("dump", false, "dump messages?")
-	var wait = flag.Int("wait", 10, "ms to wait between client connects")
-	var pace = flag.Int("pace", 60, "send a message on average once every pace seconds")
+	if protocolType == "mqtt" {
+		var conns = flag.Int("conns", 10, "how many conns (0 means infinite)")
+		//var host = flag.String("host", string(serverAddr)+":1883", "hostname of broker")
+		//var user = flag.String("user", "", "username")
+		//var pass = flag.String("pass", "", "password")
+		//var dump = flag.Bool("dump", false, "dump messages?")
+		var wait = flag.Int("wait", 10, "ms to wait between client connects")
+		var pace = flag.Int("pace", 60, "send a message on average once every pace seconds")
 
-	var payload proto.Payload
-	var topic string
+		var payload proto.Payload
+		var topic string
 
-	flag.Parse()
+		flag.Parse()
 
-	if flag.NArg() != 2 {
-		topic = "many"
-		payload = proto.BytesPayload([]byte("hello"))
-	} else {
-		topic = flag.Arg(0)
-		payload = proto.BytesPayload([]byte(flag.Arg(1)))
-	}
-
-	if *conns == 0 {
-		*conns = -1
-	}
-
-	i := 0
-	for {
-		go iotmqtt.Client(i)
-		i++
-
-		*conns--
-		if *conns == 0 {
-			break
+		if flag.NArg() != 2 {
+			topic = "clientSingle"
+			payload = proto.BytesPayload(dataJSON)
+		} else {
+			topic = flag.Arg(0)
+			payload = proto.BytesPayload([]byte(flag.Arg(1)))
 		}
-		time.Sleep(time.Duration(*wait) * time.Millisecond)
+
+		var mqttwg sync.WaitGroup
+		i := 1
+		for ; i != *conns; i++ {
+			mqttwg.Add(1)
+			go iotmqtt.ClientPublisher(i, serverAddr, mqttPort, topic, &payload, pace, &mqttwg)
+
+			time.Sleep(time.Duration(*wait) * time.Millisecond)
+		}
+		mqttwg.Add(1)
+		go iotmqtt.ClientSubscriber(serverAddr, mqttPort, topic, &mqttwg)
+		mqttwg.Wait()
+		// sleep forever
+		//<-make(chan struct{})
 	}
-
-	// sleep forever
-	//<-make(chan struct{})
-
 	/********************send with mqtt*************/
 
 	/********************send with socketraw*************/

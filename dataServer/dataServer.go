@@ -24,10 +24,12 @@ func main() {
 	go router.Run(":8080")
 
 	//coap
-	iotcoap.StartCoapServer() //port 5683
+	go iotcoap.StartCoapServer() //port 5683
 
 	//mqtt
-	iotmqtt.StartMqttServer() //port 1883
+	go iotmqtt.StartMqttServer() //port 1883
+
+	//raw socket
 
 	wgAuth.Wait()
 

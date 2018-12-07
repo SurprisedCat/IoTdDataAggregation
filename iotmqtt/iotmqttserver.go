@@ -8,6 +8,7 @@ import (
 	"github.com/jeffallen/mqtt"
 )
 
+//StartMqttServer start mqtt server
 func StartMqttServer() {
 	var addr = flag.String("addr", "0.0.0.0:1883", "listen address of broker")
 
