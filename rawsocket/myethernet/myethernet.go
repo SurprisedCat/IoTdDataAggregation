@@ -13,9 +13,9 @@ import (
 //go:generate stringer -output=string.go -type=EtherType
 
 const (
-// minPayload is the minimum payload size for an Ethernet frame, assuming
-// that no 802.1Q VLAN tags are present.
-//minPayload = 46
+	// minPayload is the minimum payload size for an Ethernet frame, assuming
+	// that no 802.1Q VLAN tags are present.
+	minPayload = 46
 )
 
 var (
@@ -230,9 +230,9 @@ func (f *Frame) length() int {
 	// If payload is less than the required minimum length, we zero-pad up to
 	// the required minimum length
 	pl := len(f.Payload)
-	// if pl < minPayload {
-	// 	pl = minPayload
-	// }
+	if pl < minPayload && (f.EtherType == EtherTypeIPv4 || f.EtherType == EtherTypeIPv6 || f.EtherType == EtherTypeARP) {
+		pl = minPayload
+	}
 
 	// Add additional length if VLAN tags are needed.
 	// var vlanLen int
