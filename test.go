@@ -114,6 +114,7 @@ import (
 	"./auth"
 	"fmt"
 	"os"
+	"unsafe"
 )
 
 func main() {
@@ -122,4 +123,7 @@ func main() {
 		fmt.Println(res, vali)
 	}
 	fmt.Println(os.Environ())
+
+	payload := "test"
+	fmt.Println(unsafe.Sizeof(payload))
 }
