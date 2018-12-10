@@ -6,6 +6,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"log"
+	"net"
 	"sync"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"../iotcoap"
 	"../iothttp"
 	"../iotmqtt"
+	"../rawsocket"
 	"../simssl"
 	"../utils"
 )
@@ -23,10 +25,12 @@ func main() {
 	//common parameters
 	serverAddr := []byte("127.0.0.1")
 	origData := []byte("DATA")
-	protocolType := "mqtt"
+	protocolType := "7676"
 	httpPort := []byte("8080")
 	coapPort := []byte("5683")
 	mqttPort := []byte("1883")
+	ifaceName := "wlp4s0"
+	dstMac := net.HardwareAddr{0x34, 0xe6, 0xad, 0x09, 0xc6, 0x3f}
 
 	/**********************Authentication****************/
 	contents, err := ioutil.ReadFile("key.txt") //read the key.txt
@@ -126,6 +130,15 @@ func main() {
 	/********************send with mqtt*************/
 
 	/********************send with socketraw*************/
+	if protocolType == "7676" {
+
+		var llwg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			llwg.Add(1)
+			go rawsocket.SendLinkLayer(ifaceName, dstMac, 0x7676, dataJSON, &llwg)
+		}
+		llwg.Wait()
+	}
 
 	/********************send with socketraw*************/
 
