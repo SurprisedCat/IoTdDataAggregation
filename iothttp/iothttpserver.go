@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+var ContentChan = make(chan []byte,20)
+
 //RouterRegister Register router information
 func RouterRegister() *gin.Engine {
 	fmt.Println("IoT data aggregation HTTP RESTful")
@@ -63,9 +65,12 @@ func ProcSingle(c *gin.Context) {
 
 //ProcCluster process the cluster upload data
 func ProcCluster(c *gin.Context) {
+	recPost := map[string][]byte{}
+	err := c.BindJSON(&recPost)
+	dataJSON, err := json.Marshal(dataForSend)
 
 	c.JSON(http.StatusOK, gin.H{
-		"totalcpu": 1,
-		"idlecpu":  1,
+		"status": []byte("OK"),
 	})
+}
 }

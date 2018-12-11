@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -24,8 +25,11 @@ import (
 func main() {
 	//common parameters
 	serverAddr := []byte("127.0.0.1")
+	aggragatorAddr := []byte("127.0.0.1")
 	origData := []byte("DATA")
-	protocolType := "7676"
+	protocolType := "http"
+	totalReq := 15000
+	cluster := false
 	httpPort := []byte("8080")
 	coapPort := []byte("5683")
 	mqttPort := []byte("1883")
@@ -70,11 +74,24 @@ func main() {
 	/********************send with http*************/
 	if protocolType == "http" {
 		var httpwg sync.WaitGroup
-		for i := 0; i < 10; i++ {
-			httpwg.Add(1)
-			go iothttp.ClientSend(serverAddr, httpPort, dataJSON, &httpwg)
+		before := time.Now().UnixNano()
+		if cluster == true {
+			for i := 0; i < totalReq; i++ {
+				httpwg.Add(1)
+				go iothttp.ClientSend(aggragatorAddr, httpPort, dataJSON, &httpwg)
+				//这里可以控制发包频率
+				time.Sleep(time.Duration(time.Microsecond * 300))
+			}
+		} else {
+			for i := 0; i < totalReq; i++ {
+				httpwg.Add(1)
+				go iothttp.ClientSend(serverAddr, httpPort, dataJSON, &httpwg)
+				//这里可以控制发包频率
+				time.Sleep(time.Duration(time.Microsecond * 300))
+			}
 		}
 		httpwg.Wait()
+		fmt.Println(time.Now().UnixNano() - before)
 	}
 	/********************send with http*************/
 
@@ -83,7 +100,7 @@ func main() {
 		var coapwg sync.WaitGroup
 		for i := 0; i < 10; i++ {
 			coapwg.Add(1)
-			time.Sleep(time.Duration(100) * time.Microsecond)
+			time.Sleep(time.Duration(100 * time.Microsecond))
 			go iotcoap.ClientSend(serverAddr, coapPort, dataJSON, &coapwg)
 		}
 		coapwg.Wait()
