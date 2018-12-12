@@ -20,8 +20,8 @@ import (
 /*
 ClientAuth client authenticates the key and expiration time
 */
-func ClientAuth(serveraddr []byte) bool {
-	clientID := utils.GetClientID()
+func ClientAuth(serveraddr []byte, selfID string) bool {
+	clientID := utils.GetClientID(selfID)
 	/*send client hello*/
 	clientHello, err := simssl.GenerateClientHello(clientID)
 	if utils.CheckErr(err, "simssl.GenerateClientHello") {
@@ -34,12 +34,12 @@ func ClientAuth(serveraddr []byte) bool {
 		log.Printf("Connection error: %v", err)
 		return false
 	}
-	clientConnHandler(conn, &clientHello)
+	clientConnHandler(conn, &clientHello, selfID)
 	fmt.Println("dataClient is authenticated")
 	return true
 }
 
-func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
+func clientConnHandler(c net.Conn, message *simssl.SimSsl, selfID string) {
 	defer c.Close()
 	/*****************发送*********************/
 	// Initialize the encoder and decoder.  Normally enc and dec would be
@@ -63,7 +63,7 @@ func clientConnHandler(c net.Conn, message *simssl.SimSsl) {
 		//return false means something is wrong
 		if !simssl.CheckKey(message, recPacket) {
 
-			clientID := utils.GetClientID()
+			clientID := utils.GetClientID(selfID)
 			clientFailed, err := simssl.GenerateClientFailed(clientID, []byte("Known"))
 			if utils.CheckErr(err, "simssl.GenerateClientFailed") {
 				return

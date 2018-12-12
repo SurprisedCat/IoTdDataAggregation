@@ -24,23 +24,33 @@ import (
 
 func main() {
 	//common parameters
-	serverAddr := []byte("127.0.0.1")
+	selfID := "cx"
+	serverAddr := []byte("10.112.76.10")
 	aggragatorAddr := []byte("127.0.0.1")
 	origData := []byte("DATA")
-	protocolType := "http"
-	totalReq := 15000
+	protocolType := "mqtt"
+	totalReq := 150
 	cluster := false
-	httpPort := []byte("8080")
-	coapPort := []byte("5683")
-	mqttPort := []byte("1883")
-	ifaceName := "wlp4s0"
-	dstMac := net.HardwareAddr{0x34, 0xe6, 0xad, 0x09, 0xc6, 0x3f}
+	timeGap := 300000 //微秒为单位
+
+	var httpPort, coapPort, mqttPort []byte
+	if cluster == true {
+		httpPort = []byte("18080")
+		coapPort = []byte("15683")
+		mqttPort = []byte("11883")
+	} else {
+		httpPort = []byte("8080")
+		coapPort = []byte("5683")
+		mqttPort = []byte("1883")
+	}
+	ifaceName := "wlp61s0"
+	dstMac := net.HardwareAddr{0xa0, 0x88, 0x69, 0x16, 0xda, 0xb4}
 
 	/**********************Authentication****************/
 	contents, err := ioutil.ReadFile("key.txt") //read the key.txt
 	authTime := 0
 	for err != nil || len(contents) == 0 {
-		if !auth.ClientAuth(serverAddr) { //connect server for autentication
+		if !auth.ClientAuth(serverAddr, selfID) { //connect server for autentication
 			authTime++
 			log.Printf("Authentication fails for %d", authTime)
 			time.Sleep(time.Duration(3*authTime) * time.Second)
@@ -56,12 +66,13 @@ func main() {
 	encryptKey := contents[:16]
 	expirationTime, numbers := binary.Varint(contents[16:24])
 	if expirationTime < time.Now().Unix() || numbers <= 0 {
-		auth.ClientAuth(serverAddr)
+		auth.ClientAuth(serverAddr, selfID)
 	}
 	/*********************Check Expiration************/
 
 	/*********************data generation************/
-	clientID := utils.GetClientID()
+	clientID := utils.GetClientID(selfID)
+	fmt.Println(clientID)
 	origData = append([]byte("I am "), clientID...)
 	encryptedData, err := simssl.AesEncrypt(origData, encryptKey)
 	if err != nil {
@@ -75,20 +86,17 @@ func main() {
 	if protocolType == "http" {
 		var httpwg sync.WaitGroup
 		before := time.Now().UnixNano()
-		if cluster == true {
-			for i := 0; i < totalReq; i++ {
+
+		for i := 0; i < totalReq; i++ {
+			if cluster == true {
 				httpwg.Add(1)
 				go iothttp.ClientSend(aggragatorAddr, httpPort, dataJSON, &httpwg)
-				//这里可以控制发包频率
-				time.Sleep(time.Duration(time.Microsecond * 300))
-			}
-		} else {
-			for i := 0; i < totalReq; i++ {
+			} else {
 				httpwg.Add(1)
 				go iothttp.ClientSend(serverAddr, httpPort, dataJSON, &httpwg)
-				//这里可以控制发包频率
-				time.Sleep(time.Duration(time.Microsecond * 300))
 			}
+			//这里可以控制发包频率
+			time.Sleep(time.Duration(timeGap) * time.Microsecond)
 		}
 		httpwg.Wait()
 		fmt.Println(time.Now().UnixNano() - before)
@@ -98,12 +106,21 @@ func main() {
 	/********************send with coap*************/
 	if protocolType == "coap" {
 		var coapwg sync.WaitGroup
-		for i := 0; i < 10; i++ {
-			coapwg.Add(1)
-			time.Sleep(time.Duration(100 * time.Microsecond))
-			go iotcoap.ClientSend(serverAddr, coapPort, dataJSON, &coapwg)
+		before := time.Now().UnixNano()
+
+		for i := 0; i < totalReq; i++ {
+			if cluster == true {
+				coapwg.Add(1)
+				go iotcoap.ClientSend(aggragatorAddr, coapPort, dataJSON, &coapwg)
+			} else {
+				coapwg.Add(1)
+				go iotcoap.ClientSend(serverAddr, coapPort, dataJSON, &coapwg)
+			}
+			//这里可以控制发包频率
+			time.Sleep(time.Duration(timeGap) * time.Microsecond)
 		}
 		coapwg.Wait()
+		fmt.Println(time.Now().UnixNano() - before)
 	}
 	/********************send with coap*************/
 
@@ -115,7 +132,7 @@ func main() {
 		//var pass = flag.String("pass", "", "password")
 		//var dump = flag.Bool("dump", false, "dump messages?")
 		var wait = flag.Int("wait", 10, "ms to wait between client connects")
-		var pace = flag.Int("pace", 60, "send a message on average once every pace seconds")
+		var pace = flag.Int("pace", 5, "sleep time")
 
 		var payload proto.Payload
 		var topic string
@@ -123,7 +140,7 @@ func main() {
 		flag.Parse()
 
 		if flag.NArg() != 2 {
-			topic = "clientSingle"
+			topic = string(utils.GetClientID("cx"))
 			payload = proto.BytesPayload(dataJSON)
 		} else {
 			topic = flag.Arg(0)
@@ -133,13 +150,17 @@ func main() {
 		var mqttwg sync.WaitGroup
 		i := 1
 		for ; i != *conns; i++ {
-			mqttwg.Add(1)
-			go iotmqtt.ClientPublisher(i, serverAddr, mqttPort, topic, &payload, pace, &mqttwg)
+			if cluster == true {
+				mqttwg.Add(1)
+				go iotmqtt.ClientPublisher(i, aggragatorAddr, mqttPort, topic, &payload, *pace, &mqttwg)
+			} else {
+				mqttwg.Add(1)
+				go iotmqtt.ClientPublisher(i, serverAddr, mqttPort, topic, &payload, *pace, &mqttwg)
+			}
 
 			time.Sleep(time.Duration(*wait) * time.Millisecond)
+
 		}
-		mqttwg.Add(1)
-		go iotmqtt.ClientSubscriber(serverAddr, mqttPort, topic, &mqttwg)
 		mqttwg.Wait()
 		// sleep forever
 		//<-make(chan struct{})
@@ -150,9 +171,10 @@ func main() {
 	if protocolType == "7676" {
 
 		var llwg sync.WaitGroup
-		for i := 0; i < 10; i++ {
+		for i := 0; i < totalReq; i++ {
 			llwg.Add(1)
 			go rawsocket.SendLinkLayer(ifaceName, dstMac, 0x7676, dataJSON, &llwg)
+			time.Sleep(time.Duration(timeGap) * time.Microsecond)
 		}
 		llwg.Wait()
 	}

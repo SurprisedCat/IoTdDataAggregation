@@ -19,7 +19,7 @@ func DataServerWriteAuth(key, value []byte, expireTime int64) bool {
 	defer c.Close()
 	_, err = c.Do("SET", key, value, "EX", expireTime)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("DataServerWriteAuth:%v\n", err)
 		return false
 	}
 	return true
@@ -37,7 +37,7 @@ func DataServerEraseAuth(key []byte) bool {
 	defer c.Close()
 	_, err = c.Do("DEL", key)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf("DataServerEraseAuth:%v\n", err)
 		return false
 	}
 	return true
@@ -56,7 +56,7 @@ func DataServerGetKey(cid []byte) ([]byte, bool) {
 	key := sha256.Sum256(cid)
 	encryptedKey, err := redis.String(c.Do("GET", key[:]))
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf(" DataServerGetKey:%v\n", err)
 		return nil, false
 	}
 	return []byte(encryptedKey), true
@@ -75,7 +75,7 @@ func ConnTest() {
 	defer c.Close()
 	_, err = c.Do("MSet", "abc", 100, "efg", 300)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Printf(" ConnTest:%v\n", err)
 		return
 	}
 	_, err = c.Do("DEL", "efg")

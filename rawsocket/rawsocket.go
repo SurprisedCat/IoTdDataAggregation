@@ -1,6 +1,7 @@
 package rawsocket
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -25,6 +26,8 @@ import (
 // 	RecLinkLayer(ifaceName, 0x7676)
 // 	llwg.Wait()
 // }
+
+var ContentChan = make(chan map[string][]byte, 50)
 
 //SendLinkLayer send a packet via link layer socket
 func SendLinkLayer(ifaceName string, dstMac net.HardwareAddr, ethType myethernet.EtherType, myPayload []byte, llwg *sync.WaitGroup) {
@@ -51,11 +54,16 @@ func SendLinkLayer(ifaceName string, dstMac net.HardwareAddr, ethType myethernet
 	if err != nil {
 		log.Fatalf("failed to marshal frame: %v", err)
 	}
-	// Broadcast the frame to all devices on our network segment.
+	// sned the frame to specific devices on our network segment.
 	addr := &raw.Addr{HardwareAddr: dstMac}
 	if _, err := c.WriteTo(b, addr); err != nil {
 		log.Fatalf("failed to write frame: %v", err)
 	}
+}
+
+//AggregatorSend send the aggregated packets to remote server
+func AggregatorSend(serverAddr, backPort, dataJSON []byte, rswg *sync.WaitGroup) {
+
 }
 
 //RecLinkLayer link layer receiver
@@ -91,5 +99,13 @@ func RecHandler(f myethernet.Frame, addr net.Addr, b []byte, n int) {
 		log.Fatalf("failed to unmarshal ethernet frame: %v", err)
 	}
 	// Display source of message and message itself.
+	recPost := map[string][]byte{}
+	err := json.Unmarshal(f.Payload, &recPost)
+	if err != nil {
+		fmt.Println("Json decode error")
+		return
+	}
+	//put it into channel
+	ContentChan <- recPost
 	log.Printf("[%s] %s", addr.String(), string(f.Payload))
 }

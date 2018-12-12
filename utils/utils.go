@@ -3,7 +3,6 @@ package utils
 import (
 	"fmt"
 	"os"
-	"strconv"
 )
 
 /*
@@ -36,13 +35,17 @@ func CheckErr(err error, extra string) bool {
 /*
 GetClientID get the hostname and uid of the user
 */
-func GetClientID() []byte {
+func GetClientID(v ...string) []byte {
 	//Get the hostname of the machine
 	hostname, err := os.Hostname()
 	if err != nil {
 		panic(err)
 	}
+	item := ""
+	for _, value := range v {
+		item += value
+	}
 	//clientID = hostname + uid
-	clientID := hostname + strconv.FormatInt(int64(os.Getuid()), 10)
+	clientID := hostname + item
 	return []byte(clientID)
 }

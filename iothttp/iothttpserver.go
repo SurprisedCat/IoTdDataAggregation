@@ -9,7 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var ContentChan = make(chan []byte,20)
+//ContentChan content type is json decoded as map[string][]byte
+var ContentChan = make(chan map[string][]byte, 50)
 
 //RouterRegister Register router information
 func RouterRegister() *gin.Engine {
@@ -21,6 +22,7 @@ func RouterRegister() *gin.Engine {
 	router.GET("/", IndexAPI)
 	router.POST("/v1/upload/single", ProcSingle)
 	router.POST("/v1/upload/cluster", ProcCluster)
+	router.POST("/v1/upload/aggre", ProcAggre)
 
 	return router
 }
@@ -65,12 +67,52 @@ func ProcSingle(c *gin.Context) {
 
 //ProcCluster process the cluster upload data
 func ProcCluster(c *gin.Context) {
+	recPost := []map[string][]byte{}
+	err := c.BindJSON(&recPost)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"status": []byte("error"),
+		})
+		return
+	}
+	clientID := recPost[0]["ID"]
+	eKey, vali := auth.GetValidationKeyServer([]byte(clientID))
+	if vali == false {
+		c.JSON(http.StatusOK, gin.H{
+			"status": []byte("error"),
+		})
+		return
+	}
+	for i := 0; i < len(recPost); i++ {
+		clientData := recPost[i]["data"]
+		originData, err := simssl.AesDecrypt([]byte(clientData), eKey)
+		fmt.Println(string(recPost[i]["ID"]), string(originData))
+		if err != nil {
+			c.JSON(http.StatusOK, gin.H{
+				"status": []byte("error"),
+			})
+			return
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"status": []byte("OK"),
+	})
+
+}
+
+//ProcAggre process the cluster upload data
+func ProcAggre(c *gin.Context) {
 	recPost := map[string][]byte{}
 	err := c.BindJSON(&recPost)
-	dataJSON, err := json.Marshal(dataForSend)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"status": []byte("error"),
+		})
+		return
+	}
+	ContentChan <- recPost
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": []byte("OK"),
 	})
-}
 }
