@@ -8,6 +8,7 @@ import (
 	"time"
 
 	//"../auth"
+	"../config"
 	"../iotcoap"
 	"../iothttp"
 	"../iotmqtt"
@@ -20,15 +21,15 @@ var wgAuth sync.WaitGroup
 
 func main() {
 
-	serverAddr := []byte("127.0.0.1")
-	protocolType := "mqtt"
+	serverAddr := config.ServerAddr
+	protocolType := config.ProtocolType
 	httpPort := []byte("8080")
-	aggreLength := 10 //maximum 50
-	var timeout int64 = 9000000000
+	aggreLength := config.AggreLength //maximum 50
+	var timeout int64 = 6000000000    //nanosecond
 	coapPort := []byte("5683")
 	mqttPort := []byte("1883")
-	ifaceName := "wlp61s0" //raw socket device
-	backPort := coapPort
+	ifaceName := config.AggreIfaceName //raw socket device
+	backPort := config.BackPort
 
 	// http
 	// 路由部分
@@ -56,7 +57,7 @@ func main() {
 				go iothttp.AggregatorSend(serverAddr, httpPort, dataJSON, &httpwg)
 				timeStart = time.Now().UnixNano()
 			}
-			if time.Now().UnixNano()-timeStart > timeout { //纳秒为单位
+			if time.Now().UnixNano()-timeStart > timeout && len(iotmqtt.ContentChan) > 0 { //纳秒为单位
 				fmt.Printf("TimeOut：%d\n", len(iothttp.ContentChan))
 				for i := 0; i < len(iothttp.ContentChan); i++ {
 					recPost[i] = <-iothttp.ContentChan
@@ -90,12 +91,12 @@ func main() {
 				if err != nil {
 					utils.CheckErr(err, "COAP POST error")
 				}
-				fmt.Printf("%v\n", dataJSON)
+				//fmt.Printf("%v\n", dataJSON)
 				coapwg.Add(1)
 				go iotcoap.AggregatorSend(serverAddr, coapPort, dataJSON, &coapwg)
 				timeStart = time.Now().UnixNano()
 			}
-			if time.Now().UnixNano()-timeStart > timeout { //纳秒为单位
+			if time.Now().UnixNano()-timeStart > timeout && len(iotmqtt.ContentChan) > 0 { //纳秒为单位
 				fmt.Printf("COAP TimeOut：%d\n", len(iotcoap.ContentChan))
 				for i := 0; i < len(iotcoap.ContentChan); i++ {
 					recPost[i] = <-iotcoap.ContentChan
@@ -140,7 +141,7 @@ func main() {
 				go iotmqtt.ClientPublisher(1, serverAddr, mqttPort, string(utils.GetClientID("cx")), &payload, 0, &mqttwg)
 				timeStart = time.Now().UnixNano()
 			}
-			if time.Now().UnixNano()-timeStart > timeout { //纳秒为单位
+			if time.Now().UnixNano()-timeStart > timeout && len(iotmqtt.ContentChan) > 0 { //纳秒为单位
 				fmt.Printf("MQTT TimeOut：%d\n", len(iotcoap.ContentChan))
 				for i := 0; i < len(iotmqtt.ContentChan); i++ {
 					recPost[i] = <-iotmqtt.ContentChan
@@ -185,7 +186,7 @@ func main() {
 
 				timeStart = time.Now().UnixNano()
 			}
-			if time.Now().UnixNano()-timeStart > timeout { //纳秒为单位
+			if time.Now().UnixNano()-timeStart > timeout && len(iotmqtt.ContentChan) > 0 { //纳秒为单位
 				fmt.Printf("RawSocket TimeOut：%d\n", len(rawsocket.ContentChan))
 				for i := 0; i < len(rawsocket.ContentChan); i++ {
 					recPost[i] = <-rawsocket.ContentChan

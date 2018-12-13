@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net"
 	"sync"
 	"time"
 
 	proto "github.com/huin/mqtt"
 
 	"../auth"
+	"../config"
 	"../iotcoap"
 	"../iothttp"
 	"../iotmqtt"
@@ -25,13 +25,13 @@ import (
 func main() {
 	//common parameters
 	selfID := "cx"
-	serverAddr := []byte("10.112.76.10")
-	aggragatorAddr := []byte("127.0.0.1")
-	origData := []byte("DATA")
-	protocolType := "mqtt"
-	totalReq := 150
-	cluster := false
-	timeGap := 300000 //微秒为单位
+	serverAddr := config.ServerAddr
+	aggregatorAddr := config.AggregatorAddr
+	origData := config.PayloadData
+	protocolType := config.ProtocolType
+	totalReq := config.TotalReq
+	cluster := config.Cluster
+	timeGap := config.TimeGap //微秒为单位
 
 	var httpPort, coapPort, mqttPort []byte
 	if cluster == true {
@@ -43,8 +43,8 @@ func main() {
 		coapPort = []byte("5683")
 		mqttPort = []byte("1883")
 	}
-	ifaceName := "wlp61s0"
-	dstMac := net.HardwareAddr{0xa0, 0x88, 0x69, 0x16, 0xda, 0xb4}
+	ifaceName := config.ClientIfaceName
+	dstMac := config.DstMac
 
 	/**********************Authentication****************/
 	contents, err := ioutil.ReadFile("key.txt") //read the key.txt
@@ -73,7 +73,6 @@ func main() {
 	/*********************data generation************/
 	clientID := utils.GetClientID(selfID)
 	fmt.Println(clientID)
-	origData = append([]byte("I am "), clientID...)
 	encryptedData, err := simssl.AesEncrypt(origData, encryptKey)
 	if err != nil {
 		log.Fatal("simssl.AesEncrypt:", err)
@@ -90,7 +89,7 @@ func main() {
 		for i := 0; i < totalReq; i++ {
 			if cluster == true {
 				httpwg.Add(1)
-				go iothttp.ClientSend(aggragatorAddr, httpPort, dataJSON, &httpwg)
+				go iothttp.ClientSend(aggregatorAddr, httpPort, dataJSON, &httpwg)
 			} else {
 				httpwg.Add(1)
 				go iothttp.ClientSend(serverAddr, httpPort, dataJSON, &httpwg)
@@ -111,7 +110,7 @@ func main() {
 		for i := 0; i < totalReq; i++ {
 			if cluster == true {
 				coapwg.Add(1)
-				go iotcoap.ClientSend(aggragatorAddr, coapPort, dataJSON, &coapwg)
+				go iotcoap.ClientSend(aggregatorAddr, coapPort, dataJSON, &coapwg)
 			} else {
 				coapwg.Add(1)
 				go iotcoap.ClientSend(serverAddr, coapPort, dataJSON, &coapwg)
@@ -132,7 +131,7 @@ func main() {
 		//var pass = flag.String("pass", "", "password")
 		//var dump = flag.Bool("dump", false, "dump messages?")
 		var wait = flag.Int("wait", 10, "ms to wait between client connects")
-		var pace = flag.Int("pace", 5, "sleep time")
+		var pace = flag.Int("pace", 5000000, "sleep time")
 
 		var payload proto.Payload
 		var topic string
@@ -152,7 +151,7 @@ func main() {
 		for ; i != *conns; i++ {
 			if cluster == true {
 				mqttwg.Add(1)
-				go iotmqtt.ClientPublisher(i, aggragatorAddr, mqttPort, topic, &payload, *pace, &mqttwg)
+				go iotmqtt.ClientPublisher(i, aggregatorAddr, mqttPort, topic, &payload, *pace, &mqttwg)
 			} else {
 				mqttwg.Add(1)
 				go iotmqtt.ClientPublisher(i, serverAddr, mqttPort, topic, &payload, *pace, &mqttwg)

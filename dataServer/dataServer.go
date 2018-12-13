@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"../auth"
+	"../config"
 	"../iotcoap"
 	"../iothttp"
 	"../iotmqtt"
@@ -31,7 +32,11 @@ func main() {
 	//mqtt
 	go iotmqtt.StartMqttServer([]byte("1883")) //port 1883
 	time.Sleep(time.Duration(2) * time.Second)
-	go iotmqtt.ServerSubscriber([]byte("127.0.0.1"), []byte("1883"), string(utils.GetClientID("cx")))
+	if config.Cluster == true {
+		go iotmqtt.ServerSubscriberCluster([]byte("127.0.0.1"), []byte("1883"), string(utils.GetClientID("cx")))
+	} else {
+		go iotmqtt.ServerSubscriberSingle([]byte("127.0.0.1"), []byte("1883"), string(utils.GetClientID("cx")))
+	}
 
 	//raw socket get it through other protocl
 
