@@ -17,12 +17,12 @@ var Debug = true
 var ServerAddr = []byte("10.103.238.174")
 
 //AggregatorAddr 聚合节点的IP地址
-var AggregatorAddr = []byte("10.112.43.97")
+var AggregatorAddr = []byte("10.112.17.170")
 
 //AggreIfaceName 聚合节点的MAC地址
-var AggreIfaceName = "wlp61s0" //raw socket device for aggregator
+var AggreIfaceName = "wlp58s0" //raw socket device for aggregator
 //BackPort 聚合节点传输给服务器所使用的协议
-var BackPort = []byte("5683") //8080 http 5683 coap
+var BackPort = []byte("8080") //8080 http 5683 coap
 
 //ProtocolType 测试的协议类型 http coap mqtt 7676(代表rawsocket)
 var ProtocolType = "coap"
@@ -37,7 +37,7 @@ var AggreLength = 1200
 var ClientIfaceName = "wlp4s0" //raw socket device for aggregator
 
 //DstMac 发送的聚合节点的MAC地址
-var DstMac = net.HardwareAddr{0xa0, 0x88, 0x69, 0x16, 0xda, 0xb4}
+var DstMac = net.HardwareAddr{0xf8, 0x63, 0x3f, 0x42, 0x04, 0x00}
 
 //TotalReq 总请求量
 var TotalReq = 150
