@@ -82,7 +82,7 @@ func main() {
 			lengthPacketForSend := len(iotcoap.ContentChan) // the number of packets in the channel
 			recPost := make([]map[string][]byte, lengthPacketForSend)
 			// the totoal bytes in the channel is larger than threhold. 1200 is the maximum payload of COAP in this condition
-			if lengthPacketForSend*config.TotalPayloadJSONLength > utils.Min(aggreLength, 1200) { // the totoal bytes in the channel is larger than threhold
+			if lengthPacketForSend*config.TotalPayloadJSONLength > utils.Min(aggreLength, 1100) { // the totoal bytes in the channel is larger than threhold
 				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-iotcoap.ContentChan
 					fmt.Printf("COAP aggregator %d \n", i)
@@ -168,7 +168,7 @@ func main() {
 			recPost := make([]map[string][]byte, lengthPacketForSend)
 			// the totoal bytes in the channel is larger than threhold. 1200 is the maximum payload of COAP in this condition
 			if bytes.Compare(backPort, coapPort) == 0 {
-				aggreLength = utils.Min(aggreLength, 1200)
+				aggreLength = utils.Min(aggreLength, 1100)
 			}
 			if lengthPacketForSend*config.TotalPayloadJSONLength > aggreLength { // the totoal bytes in the channel is larger than threhold
 				for i := 0; i < lengthPacketForSend; i++ {
