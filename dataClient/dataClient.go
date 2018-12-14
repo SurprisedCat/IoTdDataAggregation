@@ -24,7 +24,7 @@ import (
 
 func main() {
 	//common parameters
-	selfID := "cx"
+	selfID := config.SelfID
 	serverAddr := config.ServerAddr
 	aggregatorAddr := config.AggregatorAddr
 	origData := config.PayloadData
@@ -73,6 +73,7 @@ func main() {
 	/*********************data generation************/
 	clientID := utils.GetClientID(selfID)
 	fmt.Println(clientID)
+
 	encryptedData, err := simssl.AesEncrypt(origData, encryptKey)
 	if err != nil {
 		log.Fatal("simssl.AesEncrypt:", err)

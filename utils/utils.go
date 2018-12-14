@@ -49,3 +49,11 @@ func GetClientID(v ...string) []byte {
 	clientID := hostname + item
 	return []byte(clientID)
 }
+
+//Min get the smaller one
+func Min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}

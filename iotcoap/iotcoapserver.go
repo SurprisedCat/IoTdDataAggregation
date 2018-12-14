@@ -82,7 +82,6 @@ func ProcCluster(l *net.UDPConn, a *net.UDPAddr, m *coap.Message) *coap.Message 
 	if err != nil {
 		fmt.Println(m.Payload)
 		fmt.Println("Cluster Json decode error")
-		fmt.Println(err)
 		return errRes
 	}
 	clientID := recPost[0]["ID"]

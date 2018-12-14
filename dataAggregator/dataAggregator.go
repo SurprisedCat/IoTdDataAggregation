@@ -24,7 +24,7 @@ func main() {
 	serverAddr := config.ServerAddr
 	protocolType := config.ProtocolType
 	httpPort := []byte("8080")
-	aggreLength := config.AggreLength //maximum 50
+	aggreLength := config.AggreLength //the total bytes for send
 	var timeout int64 = 6000000000    //nanosecond
 	coapPort := []byte("5683")
 	mqttPort := []byte("1883")
@@ -41,12 +41,12 @@ func main() {
 	if protocolType == "http" {
 		var httpwg sync.WaitGroup
 		timeStart := time.Now().UnixNano()
-		recPost := make([]map[string][]byte, aggreLength)
 		for {
-			if len(iothttp.ContentChan) > aggreLength {
-				for i := 0; i < aggreLength; i++ {
+			lengthPacketForSend := len(iothttp.ContentChan) // the number of packets in the channel
+			recPost := make([]map[string][]byte, lengthPacketForSend)
+			if lengthPacketForSend*config.TotalPayloadJSONLength > aggreLength {
+				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-iothttp.ContentChan
-					recPost[i]["data"] = append(recPost[i]["data"], []byte("00000000000000000000000000000000")...)
 				}
 				dataJSON, err := json.Marshal(recPost)
 				if err != nil {
@@ -57,11 +57,10 @@ func main() {
 				go iothttp.AggregatorSend(serverAddr, httpPort, dataJSON, &httpwg)
 				timeStart = time.Now().UnixNano()
 			}
-			if time.Now().UnixNano()-timeStart > timeout && len(iotmqtt.ContentChan) > 0 { //纳秒为单位
-				fmt.Printf("TimeOut：%d\n", len(iothttp.ContentChan))
-				for i := 0; i < len(iothttp.ContentChan); i++ {
+			if time.Now().UnixNano()-timeStart > timeout && lengthPacketForSend > 0 { //纳秒为单位
+				fmt.Printf("TimeOut：%d\n", lengthPacketForSend)
+				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-iothttp.ContentChan
-					recPost[i]["data"] = append(recPost[i]["data"], []byte("00000000000000000000000000000000")...)
 				}
 				dataJSON, err := json.Marshal(recPost)
 				if err != nil {
@@ -79,12 +78,14 @@ func main() {
 	if protocolType == "coap" {
 		var coapwg sync.WaitGroup
 		timeStart := time.Now().UnixNano()
-		recPost := make([]map[string][]byte, aggreLength)
 		for {
-			if len(iotcoap.ContentChan) > aggreLength {
-				for i := 0; i < aggreLength; i++ {
+			lengthPacketForSend := len(iotcoap.ContentChan) // the number of packets in the channel
+			recPost := make([]map[string][]byte, lengthPacketForSend)
+			// the totoal bytes in the channel is larger than threhold. 1200 is the maximum payload of COAP in this condition
+			if lengthPacketForSend*config.TotalPayloadJSONLength > utils.Min(aggreLength, 1200) { // the totoal bytes in the channel is larger than threhold
+				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-iotcoap.ContentChan
-					recPost[i]["data"] = append(recPost[i]["data"], []byte("00000000000000000000000000000000")...)
+					fmt.Printf("COAP aggregator %d \n", i)
 				}
 				fmt.Printf("%v\n", recPost)
 				dataJSON, err := json.Marshal(recPost)
@@ -96,11 +97,10 @@ func main() {
 				go iotcoap.AggregatorSend(serverAddr, coapPort, dataJSON, &coapwg)
 				timeStart = time.Now().UnixNano()
 			}
-			if time.Now().UnixNano()-timeStart > timeout && len(iotmqtt.ContentChan) > 0 { //纳秒为单位
-				fmt.Printf("COAP TimeOut：%d\n", len(iotcoap.ContentChan))
-				for i := 0; i < len(iotcoap.ContentChan); i++ {
+			if time.Now().UnixNano()-timeStart > timeout && lengthPacketForSend > 0 { //纳秒为单位
+				fmt.Printf("COAP TimeOut：%d\n", lengthPacketForSend)
+				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-iotcoap.ContentChan
-					recPost[i]["data"] = append(recPost[i]["data"], []byte("00000000000000000000000000000000")...)
 				}
 				dataJSON, err := json.Marshal(recPost)
 				if err != nil {
@@ -120,15 +120,14 @@ func main() {
 	if protocolType == "mqtt" {
 		var mqttwg sync.WaitGroup
 		timeStart := time.Now().UnixNano()
-		recPost := make([]map[string][]byte, aggreLength)
 		for {
 
 			var payload proto.Payload
-
-			if len(iotmqtt.ContentChan) > aggreLength {
-				for i := 0; i < aggreLength; i++ {
+			lengthPacketForSend := len(iotmqtt.ContentChan) // the number of packets in the channel
+			recPost := make([]map[string][]byte, lengthPacketForSend)
+			if lengthPacketForSend*config.TotalPayloadJSONLength > aggreLength { // the totoal bytes in the channel is larger than threhold
+				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-iotmqtt.ContentChan
-					recPost[i]["data"] = append(recPost[i]["data"], []byte("00000000000000000000000000000000")...)
 				}
 				fmt.Printf("%v\n", recPost)
 				dataJSON, err := json.Marshal(recPost)
@@ -141,11 +140,10 @@ func main() {
 				go iotmqtt.ClientPublisher(1, serverAddr, mqttPort, string(utils.GetClientID("cx")), &payload, 0, &mqttwg)
 				timeStart = time.Now().UnixNano()
 			}
-			if time.Now().UnixNano()-timeStart > timeout && len(iotmqtt.ContentChan) > 0 { //纳秒为单位
-				fmt.Printf("MQTT TimeOut：%d\n", len(iotcoap.ContentChan))
-				for i := 0; i < len(iotmqtt.ContentChan); i++ {
+			if time.Now().UnixNano()-timeStart > timeout && lengthPacketForSend > 0 { //纳秒为单位
+				fmt.Printf("MQTT TimeOut：%d\n", lengthPacketForSend)
+				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-iotmqtt.ContentChan
-					recPost[i]["data"] = append(recPost[i]["data"], []byte("00000000000000000000000000000000")...)
 				}
 				dataJSON, err := json.Marshal(recPost)
 				payload = proto.BytesPayload(dataJSON)
@@ -165,10 +163,15 @@ func main() {
 	if protocolType == "7676" {
 		var rswg sync.WaitGroup
 		timeStart := time.Now().UnixNano()
-		recPost := make([]map[string][]byte, aggreLength)
 		for {
-			if len(rawsocket.ContentChan) > aggreLength {
-				for i := 0; i < aggreLength; i++ {
+			lengthPacketForSend := len(rawsocket.ContentChan) // the number of packets in the channel
+			recPost := make([]map[string][]byte, lengthPacketForSend)
+			// the totoal bytes in the channel is larger than threhold. 1200 is the maximum payload of COAP in this condition
+			if bytes.Compare(backPort, coapPort) == 0 {
+				aggreLength = utils.Min(aggreLength, 1200)
+			}
+			if lengthPacketForSend*config.TotalPayloadJSONLength > aggreLength { // the totoal bytes in the channel is larger than threhold
+				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-rawsocket.ContentChan
 				}
 				dataJSON, err := json.Marshal(recPost)
@@ -186,9 +189,9 @@ func main() {
 
 				timeStart = time.Now().UnixNano()
 			}
-			if time.Now().UnixNano()-timeStart > timeout && len(iotmqtt.ContentChan) > 0 { //纳秒为单位
-				fmt.Printf("RawSocket TimeOut：%d\n", len(rawsocket.ContentChan))
-				for i := 0; i < len(rawsocket.ContentChan); i++ {
+			if time.Now().UnixNano()-timeStart > timeout && lengthPacketForSend > 0 { //纳秒为单位
+				fmt.Printf("RawSocket TimeOut：%d\n", lengthPacketForSend)
+				for i := 0; i < lengthPacketForSend; i++ {
 					recPost[i] = <-rawsocket.ContentChan
 				}
 				dataJSON, err := json.Marshal(recPost)
