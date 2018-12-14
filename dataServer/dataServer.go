@@ -12,7 +12,6 @@ import (
 	"../utils"
 )
 
-var AggreAddr = config.AggregatorAddr
 var wgAuth sync.WaitGroup
 
 func main() {
@@ -34,7 +33,7 @@ func main() {
 	go iotmqtt.StartMqttServer([]byte("1883")) //port 1883
 	time.Sleep(time.Duration(2) * time.Second)
 	if config.Cluster == true {
-		go iotmqtt.ServerSubscriberCluster(AggreAddr, []byte("11883"), string(utils.GetClientID("cx")))
+		go iotmqtt.ServerSubscriberCluster([]byte("127.0.0.1"), []byte("1883"), string(utils.GetClientID("cx")))
 	} else {
 		go iotmqtt.ServerSubscriberSingle([]byte("127.0.0.1"), []byte("1883"), string(utils.GetClientID("cx")))
 	}
