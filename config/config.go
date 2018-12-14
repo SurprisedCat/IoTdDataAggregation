@@ -25,7 +25,7 @@ var AggreIfaceName = "wlp58s0" //raw socket device for aggregator
 var BackPort = []byte("8080") //8080 http 5683 coap
 
 //ProtocolType 测试的协议类型 http coap mqtt 7676(代表rawsocket)
-var ProtocolType = "8080"
+var ProtocolType = "coap"
 
 //聚合的包数目
 // var AggreLength int = 50
@@ -42,7 +42,7 @@ var DstMac = net.HardwareAddr{0xf8, 0x63, 0x3f, 0x42, 0x04, 0x00}
 var TotalReq = 150
 
 //TimeGap 时间间隔
-var TimeGap = 500000 //微秒为单位
+var TimeGap = 100000 //微秒为单位
 
 //Cluster 是否启用聚合方式 true/false
 var Cluster = true
