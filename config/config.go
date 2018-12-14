@@ -10,11 +10,14 @@ import (
 //README 说明，
 var README = "使用rawsocket发送/接收的时候需要root权限，或者sudo；聚合的指标从包书数量，改成了字节数"
 
+//Debug true at present
+var Debug = true
+
 //ServerAddr 云端的地址
 var ServerAddr = []byte("127.0.0.1")
 
 //AggregatorAddr 聚合节点的IP地址
-var AggregatorAddr = []byte("10.112.43.97")
+var AggregatorAddr = []byte("127.0.0.1")
 
 //AggreIfaceName 聚合节点的MAC地址
 var AggreIfaceName = "wlp61s0" //raw socket device for aggregator

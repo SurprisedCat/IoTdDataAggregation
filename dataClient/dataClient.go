@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"sync"
 	"time"
 
@@ -45,6 +46,14 @@ func main() {
 	}
 	ifaceName := config.ClientIfaceName
 	dstMac := config.DstMac
+
+	if config.Debug == true {
+		del := os.Remove("./key.txt")
+		if del != nil {
+			fmt.Println(del)
+			fmt.Println("Start to authenticate and create key.txt")
+		}
+	}
 
 	/**********************Authentication****************/
 	contents, err := ioutil.ReadFile("key.txt") //read the key.txt
