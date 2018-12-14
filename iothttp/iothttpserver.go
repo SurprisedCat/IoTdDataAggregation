@@ -53,7 +53,7 @@ func ProcSingle(c *gin.Context) {
 		return
 	}
 	originData, err := simssl.AesDecrypt([]byte(clientData), eKey)
-	fmt.Println(originData)
+	fmt.Println(string(clientID), string(originData))
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"status": []byte("error"),

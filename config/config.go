@@ -34,7 +34,8 @@ var ProtocolType = "coap"
 var AggreLength = 1200
 
 //ClientIfaceName 客户节点的MAC地址
-var ClientIfaceName = "00" //raw socket device for aggregator
+var ClientIfaceName = "wlp4s0" //raw socket device for aggregator
+
 //DstMac 发送的聚合节点的MAC地址
 var DstMac = net.HardwareAddr{0xa0, 0x88, 0x69, 0x16, 0xda, 0xb4}
 
