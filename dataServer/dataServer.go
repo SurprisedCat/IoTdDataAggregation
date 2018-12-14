@@ -34,9 +34,9 @@ func main() {
 	go iotmqtt.StartMqttServer([]byte("1883")) //port 1883
 	time.Sleep(time.Duration(2) * time.Second)
 	if config.Cluster == true {
-		go iotmqtt.ServerSubscriberCluster([]byte("127.0.0.1"), []byte("11883"), string(utils.GetClientID("cx")))
+		go iotmqtt.ServerSubscriberCluster(AggreAddr, []byte("11883"), string(utils.GetClientID("cx")))
 	} else {
-		go iotmqtt.ServerSubscriberSingle(AggreAddr, []byte("1883"), string(utils.GetClientID("cx")))
+		go iotmqtt.ServerSubscriberSingle([]byte("127.0.0.1"), []byte("1883"), string(utils.GetClientID("cx")))
 	}
 
 	//raw socket get it through other protocl
