@@ -14,10 +14,10 @@ var README = "使用rawsocket发送/接收的时候需要root权限，或者sudo
 var Debug = true
 
 //ServerAddr 云端的地址
-var ServerAddr = []byte("127.0.0.1")
+var ServerAddr = []byte("10.103.238.174")
 
 //AggregatorAddr 聚合节点的IP地址
-var AggregatorAddr = []byte("127.0.0.1")
+var AggregatorAddr = []byte("10.112.43.97")
 
 //AggreIfaceName 聚合节点的MAC地址
 var AggreIfaceName = "wlp61s0" //raw socket device for aggregator
@@ -34,7 +34,7 @@ var ProtocolType = "coap"
 var AggreLength = 2000
 
 //ClientIfaceName 客户节点的MAC地址
-var ClientIfaceName = "wlp61s0" //raw socket device for aggregator
+var ClientIfaceName = "wlp4s0" //raw socket device for aggregator
 //DstMac 发送的聚合节点的MAC地址
 var DstMac = net.HardwareAddr{0xa0, 0x88, 0x69, 0x16, 0xda, 0xb4}
 
@@ -63,11 +63,9 @@ func init() {
 	//添加额外的解密载荷
 	if ProtocolType == "http" {
 		PayloadData = append(PayloadData, []byte("00000000000000000000000000000000")...)
-		PayloadData = append(PayloadData, []byte("00000000000000000000000000000000")...)
 	} else if ProtocolType == "coap" {
-		PayloadData = append(PayloadData, []byte("00000000000000000000000000000000")...)
+		PayloadData = append(PayloadData, []byte("0000000000000000")...)
 	} else if ProtocolType == "mqtt" {
-		PayloadData = append(PayloadData, []byte("00000000000000000000000000000000")...)
 		PayloadData = append(PayloadData, []byte("00000000000000000000000000000000")...)
 	} else if ProtocolType == "7676" {
 
