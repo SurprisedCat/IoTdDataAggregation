@@ -9,7 +9,6 @@ import (
 	"../iotcoap"
 	"../iothttp"
 	"../iotmqtt"
-	"../utils"
 )
 
 var wgAuth sync.WaitGroup
@@ -33,9 +32,9 @@ func main() {
 	go iotmqtt.StartMqttServer([]byte("1883")) //port 1883
 	time.Sleep(time.Duration(2) * time.Second)
 	if config.Cluster == true {
-		go iotmqtt.ServerSubscriberCluster([]byte("127.0.0.1"), []byte("1883"), string(utils.GetClientID("cx")))
+		go iotmqtt.ServerSubscriberCluster([]byte("127.0.0.1"), []byte("1883"), config.MqttTopic)
 	} else {
-		go iotmqtt.ServerSubscriberSingle([]byte("127.0.0.1"), []byte("1883"), string(utils.GetClientID("cx")))
+		go iotmqtt.ServerSubscriberSingle([]byte("127.0.0.1"), []byte("1883"), config.MqttTopic)
 	}
 
 	//raw socket get it through other protocl
