@@ -138,7 +138,7 @@ func main() {
 				}
 				fmt.Printf("%v\n", dataJSON)
 				mqttwg.Add(1)
-				go iotmqtt.ClientPublisher(1, serverAddr, mqttPort, topic, &payload, 0, &mqttwg)
+				go iotmqtt.ClientPublisher(1, serverAddr, mqttPort, mqtttopic, &payload, 0, &mqttwg)
 				timeStart = time.Now().UnixNano()
 			}
 			if time.Now().UnixNano()-timeStart > timeout && lengthPacketForSend > 0 { //纳秒为单位
