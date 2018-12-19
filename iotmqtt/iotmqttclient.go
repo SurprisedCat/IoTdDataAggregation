@@ -54,7 +54,6 @@ func ClientPublisherOnce(i int, serverAddr, mqttPort []byte, topic string, paylo
 	defer mqttwg.Done()
 	log.Print("starting client send only once", i)
 	conn, err := net.Dial("tcp", string(serverAddr)+":"+string(mqttPort))
-	defer conn.Close()
 	if err != nil {
 		log.Fatal("dial: ", err)
 	}
@@ -72,8 +71,7 @@ func ClientPublisherOnce(i int, serverAddr, mqttPort []byte, topic string, paylo
 		Payload:   *payload,
 	})
 	//	sltime := rand.Int31n(half) - (half / 2) + int32(pace)
-	time.Sleep(time.Duration(pace) * time.Microsecond)
-
+	defer cc.Disconnect()
 }
 
 //ServerSubscriberSingle the only one subscriber

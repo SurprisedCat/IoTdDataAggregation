@@ -25,7 +25,7 @@ func main() {
 	protocolType := config.ProtocolType
 	httpPort := []byte("8080")
 	aggreLength := config.AggreLength //the total bytes for send
-	var timeout int64 = 6000000000    //nanosecond
+	var timeout int64 = 1000000000    //nanosecond
 	coapPort := []byte("5683")
 	mqttPort := []byte("1883")
 	mqtttopic := config.MqttTopic

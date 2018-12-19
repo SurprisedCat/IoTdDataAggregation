@@ -32,7 +32,7 @@ var MqttTopic = "OAICX"
 // var AggreLength int = 50
 
 //AggreLength 聚合的字节长度，字节超过20汇聚节点发送
-var AggreLength = 150
+var AggreLength = 800
 
 //ClientIfaceName 客户节点的MAC地址
 var ClientIfaceName = "wlp4s0" //raw socket device for aggregator
