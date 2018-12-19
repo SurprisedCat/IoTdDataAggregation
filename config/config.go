@@ -24,14 +24,15 @@ var AggreIfaceName = "wlp58s0" //raw socket device for aggregator
 //BackPort 聚合节点传输给服务器所使用的协议
 var BackPort = []byte("8080") //8080 http 5683 coap
 
-//ProtocolType 测试的协议类型 http coap mqtt 7676(代表rawsocket)
-var ProtocolType = "coap"
+//ProtocolType 测试的协议类型 http coap mqtt 7676(代表rawsocket)eth.addr==f8:63:3f:42:04:00
+var ProtocolType = "mqtt"
+var MqttTopic = "OAICX"
 
 //聚合的包数目
 // var AggreLength int = 50
 
-//AggreLength 聚合的字节长度，字节超过20汇聚节点发送
-var AggreLength = 2000
+//AggreLength 聚合的字节长度，字节超过length汇聚节点发送
+var AggreLength = 40
 
 //ClientIfaceName 客户节点的MAC地址
 var ClientIfaceName = "wlp4s0" //raw socket device for aggregator
@@ -42,7 +43,17 @@ var DstMac = net.HardwareAddr{0xf8, 0x63, 0x3f, 0x42, 0x04, 0x00}
 var TotalReq = 150
 
 //TimeGap 时间间隔
-var TimeGap = 100000 //微秒为单位
+//var TimeGap = 2000 //微秒为单位
+//var TimeGap = 5000 //200/s
+//var TimeGap = 6667 //150/s
+//var TimeGap = 10000 //100/s
+//var TimeGap = 20000 //50/s
+//var TimeGap = 50000 //20/s
+//var TimeGap = 100000 //10/s
+//var TimeGap = 200000 //5/s
+//var TimeGap = 250000 //4/s
+//var TimeGap = 500000 //2/s
+var TimeGap = 1000000 //1/s
 
 //Cluster 是否启用聚合方式 true/false
 var Cluster = true
