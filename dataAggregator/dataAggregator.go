@@ -28,6 +28,7 @@ func main() {
 	var timeout int64 = 6000000000    //nanosecond
 	coapPort := []byte("5683")
 	mqttPort := []byte("1883")
+	mqtttopic := config.MqttTopic
 	ifaceName := config.AggreIfaceName //raw socket device
 	backPort := config.BackPort
 
@@ -116,7 +117,7 @@ func main() {
 	//mqtt
 	go iotmqtt.StartMqttServer([]byte("11883")) //port 11883
 	time.Sleep(time.Duration(2) * time.Second)
-	go iotmqtt.AggregatorSubscriber([]byte("127.0.0.1"), []byte("11883"), string(utils.GetClientID("cx")))
+	go iotmqtt.AggregatorSubscriber([]byte("127.0.0.1"), []byte("11883"), mqtttopic)
 	if protocolType == "mqtt" {
 		var mqttwg sync.WaitGroup
 		timeStart := time.Now().UnixNano()
@@ -137,7 +138,7 @@ func main() {
 				}
 				fmt.Printf("%v\n", dataJSON)
 				mqttwg.Add(1)
-				go iotmqtt.ClientPublisher(1, serverAddr, mqttPort, string(utils.GetClientID("cx")), &payload, 0, &mqttwg)
+				go iotmqtt.ClientPublisherOnce(1, serverAddr, mqttPort, mqtttopic, &payload, 0, &mqttwg)
 				timeStart = time.Now().UnixNano()
 			}
 			if time.Now().UnixNano()-timeStart > timeout && lengthPacketForSend > 0 { //纳秒为单位
@@ -152,7 +153,7 @@ func main() {
 				}
 				fmt.Printf("%v\n", dataJSON)
 				mqttwg.Add(1)
-				go iotmqtt.ClientPublisher(1, serverAddr, mqttPort, string(utils.GetClientID("cx")), &payload, 0, &mqttwg)
+				go iotmqtt.ClientPublisherOnce(1, serverAddr, mqttPort, mqtttopic, &payload, 0, &mqttwg)
 				timeStart = time.Now().UnixNano()
 			}
 		}

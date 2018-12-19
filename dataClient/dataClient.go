@@ -141,7 +141,7 @@ func main() {
 		//var pass = flag.String("pass", "", "password")
 		//var dump = flag.Bool("dump", false, "dump messages?")
 		var wait = flag.Int("wait", 10, "ms to wait between client connects")
-		var pace = flag.Int("pace", 5000000, "sleep time")
+		var pace = flag.Int("pace", 1000000, "sleep time")
 
 		var payload proto.Payload
 		var topic string
@@ -149,7 +149,7 @@ func main() {
 		flag.Parse()
 
 		if flag.NArg() != 2 {
-			topic = string(utils.GetClientID("cx"))
+			topic = config.MqttTopic
 			payload = proto.BytesPayload(dataJSON)
 		} else {
 			topic = flag.Arg(0)
